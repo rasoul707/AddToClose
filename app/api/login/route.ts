@@ -1,45 +1,106 @@
-import {NextResponse} from 'next/server';
-import {chromium} from 'playwright';
-
-const userDataDir = './user-data';
-
-
-export async function POST() {
-
-    // const browser = await chromium.launch('user-data', { headless: false }); // Open real browser
-    const context = await chromium.launchPersistentContext(userDataDir, {
-        headless: false, // Show browser
-        viewport: {width: 375, height: 812}, // Mobile viewport (iPhone 12)
-        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Mobile Safari/537.36'
-    });
+import {IgApiClient, IgCheckpointError, IgLoginTwoFactorRequiredError} from "instagram-private-api";
+import {NextRequest, NextResponse} from "next/server";
+import fs from "fs";
 
 
-    const page = await context.newPage();
+export async function POST(req: NextRequest) {
 
+    const ig = new IgApiClient();
+
+    const data = await req.json()
+    const {username, password, twoFactorCode, twoFactorId, twoFactorMethod} = data;
+
+
+    console.log({username, password, twoFactorId, twoFactorMethod});
+
+    ig.state.generateDevice(username);
+    ig.state.proxyUrl = "http://127.0.0.1:10808";
     try {
-        // const {username} = await req.json();
+        if (twoFactorCode && twoFactorId) {
+            await ig.account.twoFactorLogin({
+                username: username,
+                twoFactorIdentifier: twoFactorId,
+                verificationCode: twoFactorCode,
+                verificationMethod: twoFactorMethod === "sms" ? "1" : "0",
+            });
+            const response = await ig.account.currentUser();
 
-        // 1- Open Instagram login page
-        await page.goto('https://www.instagram.com/accounts/login/', {timeout: 120000});
-        console.log('Waiting for user to log in...');
+            const result = response
 
-        // 2- Wait until the user is logged in
-        await page.waitForSelector('div[role="menu"]', {timeout: 300000}); // Wait up to 2 min
-        console.log('User logged in!');
+            const session = await ig.state.serialize();
+            fs.writeFileSync(`session/${username}.json`, JSON.stringify(session));
+            console.log('Session saved');
 
-        await context.close();
 
-        return NextResponse.json({
-            success: true,
-        });
+            return NextResponse.json(
+                {
+                    success: true,
+                    message: "ورود موفق",
+                    user: {
+                        id: result.pk,
+                        fullName: result.full_name,
+                        username: result.username,
+                        profile: result.profile_pic_url,
+                    },
+                }
+            )
+        } else {
+            // تلاش برای ورود
+            await ig.account.login(username, password);
+            const response = await ig.account.currentUser();
 
+            const result = response
+
+            const session = await ig.state.serialize();
+            fs.writeFileSync(`session/${username}.json`, JSON.stringify(session));
+            console.log('Session saved');
+
+            return NextResponse.json(
+                {
+                    success: true,
+                    message: "ورود موفق",
+                    user: {
+                        id: result.pk,
+                        fullName: result.full_name,
+                        username: result.username,
+                        profile: result.profile_pic_url,
+                    },
+                }
+            )
+        }
     } catch (error) {
-        console.error('Error:', error);
-        await context.close();
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-expect-error
-        return NextResponse.json({error: (error as unknown).message}, {status: 500});
+        console.log(error)
+        if (error instanceof IgLoginTwoFactorRequiredError) {
+            const twoFactorInfo = error.response.body.two_factor_info;
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: "تأیید دو مرحله‌ای لازم است!",
+                    twoFactorRequired: true,
+                    twoFactorId: twoFactorInfo.two_factor_identifier,
+                    twoFactorMethod: twoFactorInfo.totp_two_factor_on ? "app" : "sms",
+                }
+            )
+        }
+        if (error instanceof IgCheckpointError) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: "نیاز به تایید ورود از اپلیکیشن",
+                }
+            )
+        } else {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: "خطا در ورود! اطلاعات نادرست است.",
+                    ctx: error,
+                },
+                {status: 403}
+            )
+        }
     }
+
 }
 
 

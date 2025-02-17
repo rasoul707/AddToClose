@@ -1,130 +1,242 @@
 'use client';
 
 import {useEffect, useState} from 'react';
+import axios from "axios";
+import {Avatar, Button, Card, Divider, Input} from "@heroui/react";
+
 
 export default function Home() {
-    const [loading, setLoading] = useState(false);
-    const [loggedIn, setLogin] = useState(false);
-    const [message, setMessage] = useState('');
 
-    const checkIsLogin = async () => {
-        setLoading(true);
-        setMessage('');
+    const [sessionData, setSessionData] = useState<object | null>(null);
 
-        try {
-            const response = await fetch('/api/login', {method: 'POST'});
-            const data = await response.json();
-
-            if (response.ok) {
-                setMessage('✅ Logged in successfully!');
-                setLogin(true)
-            } else {
-                setMessage(`❌ Error: ${data.error}`);
-                setLogin(false)
-            }
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        } catch (error) {
-            setMessage('⚠️ Request failed.');
-            setLogin(false)
-        }
-
-        setLoading(false);
-    };
+    const setSession = (data: object) => {
+        localStorage.setItem("igdata", JSON.stringify(data));
+        window.location.reload();
+    }
 
     useEffect(() => {
-        checkIsLogin()
+        const d = window.localStorage.getItem("igdata")
+        setSessionData(d ? JSON.parse(d) : null)
     }, []);
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-            <div className="bg-white shadow-lg rounded-xl p-6 max-w-md flex flex-col gap-2 w-full text-center">
-                <h1 className="text-xl font-semibold text-black mb-4">
-                    Instagram Bot
-                </h1>
-                {loading && (
-                    <div className="flex flex-col gap-2 w-full">
-                        <p className="text-blue-600 py-5 ">
-                            Authenticating your account...
-                        </p>
-                        {message && (
-                            <p className="text-black  ">
-                                {message}
-                            </p>
-                        )}
-                    </div>
+        <div className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
+            <Card className="p-8 shadow-xl max-w-md w-full bg-white">
+                {(!sessionData) && (
+                    <Login
+                        setSession={setSession}
+                    />
                 )}
-                {(!loading && loggedIn) && (
-                    <AddTo isDoing={true}/>
+                {(!!sessionData) && (
+                    <Dashboard
+                        session={sessionData}
+                    />
                 )}
-            </div>
+            </Card>
         </div>
-    );
+    )
 }
 
 
-type AddToProps = {
-    isDoing: boolean;
-}
-const AddTo = (props: AddToProps) => {
+const Dashboard = ({session}: {session: object | null}) => {
 
-    const {
-        // loggedIn,
-        // setLogin,
-    } = props
+    const handleLogout = () => {
+        removeSession()
+    }
 
-    const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState('');
-    const [username, setUsername] = useState('');
-    const [success, setSuccess] = useState(false);
+    const removeSession = () => {
+        localStorage.removeItem("igdata");
+        window.location.reload();
+    }
 
 
-    const onStart = async () => {
-        if (!username) {
-            setMessage('Username is required');
-            return
-        }
-        setLoading(true);
-        setMessage('');
+    const [isLoading, setLoading] = useState(false);
+    const [status, setStatus] = useState("");
 
-
+    const handleStart = async () => {
+        setLoading(true)
         try {
-            const response = await fetch('/api/start', {method: 'POST', body: JSON.stringify({username})});
-            const data = await response.json();
-            if (response.ok) {
-                setMessage('✅ Started successfully!\nYou can close me and wait to do :)');
-                setSuccess(true)
-            } else {
-                setMessage(`❌ Error: ${data.error}`);
-                setSuccess(false)
-            }
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
+            const data = {username: session?.user?.username, session: session?.sessionId}
+            await axios.post("/api/add-to-close", data);
+            alert("ربات در حال اجراست! برنامه را ببندید و منتظر بمانید")
         } catch (error) {
-            setMessage('⚠️ Request failed.');
-            setSuccess(false)
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
+            console.log({error: error?.response});
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
+            setStatus(error?.response?.data?.message || "خطایی رخ داده است!");
         }
-
-        setLoading(false);
+        setLoading(false)
     };
 
 
     return (
-        <div className="flex flex-col gap-2">
-            <input
-                type="text"
-                placeholder="Instagram Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                className="w-full p-3 border border-gray-300 rounded-md text-black"
-            />
-            <button
-                onClick={onStart}
-                disabled={loading || success}
-                className="bg-blue-600 text-white font-semibold py-3 px-6 rounded-md hover:bg-blue-700 transition"
-            >
-                Start
-            </button>
-            {message && (<p className="mt-4 text-black">{message}</p>)}
-        </div>
+        <>
+            <h1 className="text-2xl font-bold text-center text-gray-900 py-4">اضافه کردن به کلور فرند</h1>
+            <div className="flex gap-3 flex-col items-center">
+                <Avatar
+                    className="w-20 h-20 text-large"
+                    //eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-expect-error
+                    src={session?.user?.profile || ""}
+                    //eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-expect-error
+                    name={session?.user.fullName}
+                />
+                <div className="flex gap-2 text-black font-bold">
+                    {/*eslint-disable-next-line @typescript-eslint/ban-ts-comment*/}
+                    {/*@ts-expect-error*/}
+                    {session?.user.fullName}
+                </div>
+                <Button
+                    color="success"
+                    variant="shadow"
+                    fullWidth
+                    size="lg"
+                    onPress={handleStart}
+                    isLoading={isLoading}
+                >
+                    اجرای ربات
+                </Button>
+                <Button
+                    color="danger"
+                    variant="flat"
+                    fullWidth
+                    size="lg"
+                    onPress={handleLogout}
+                >
+                    خروج
+                </Button>
+                {status && (
+                    <p className="mt-4 text-black text-center">
+                        {status}
+                    </p>
+                )}
+            </div>
+        </>
+    )
+}
+
+
+const Login = ({setSession}: { setSession: (data: object) => void; }) => {
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
+    const [twoFactorCode, setTwoFactorCode] = useState("");
+    const [twoFactorId, setTwoFactorId] = useState("");
+    const [twoFactorMethod, setTwoFactorMethod] = useState("");
+    const [status, setStatus] = useState("");
+    const [loginLoading, setLoginLoading] = useState(false);
+    const [twoFacLoading, setTwoFacLoading] = useState(false);
+
+    const handleLogin = async () => {
+        setLoginLoading(true)
+        try {
+            const res = await axios.post("/api/login", {username, password});
+            if (res.data.twoFactorRequired) {
+                setTwoFactorId(res.data.twoFactorId);
+                setTwoFactorMethod(res.data.twoFactorMethod);
+                setStatus("کد تأیید دو مرحله‌ای را وارد کنید.");
+            } else {
+                setStatus(res.data.message);
+                setSession({
+                    user: res.data.user,
+                    sessionId: res.data.sessionId,
+                })
+            }
+        } catch (error) {
+            console.log({error});
+            setStatus("ورود ناموفق! اطلاعات نادرست است.");
+        }
+        setLoginLoading(false)
+    };
+
+    const handleTwoFactorLogin = async () => {
+        setTwoFacLoading(true)
+        try {
+            const res = await axios.post("/api/login", {
+                username,
+                password,
+                twoFactorCode,
+                twoFactorId,
+                twoFactorMethod,
+            });
+            setStatus(res.data.message);
+            setSession({
+                user: res.data.user,
+                sessionId: res.data.sessionId,
+            })
+        } catch (error) {
+            console.log({error});
+            setStatus("کد تأیید نادرست است.");
+        }
+        setTwoFacLoading(false)
+    };
+
+    return (
+        <>
+            <h1 className="text-2xl font-bold text-center text-gray-900 py-4">ورود به اینستاگرام</h1>
+            <div className="flex gap-3 flex-col">
+                <Input
+                    type="text"
+                    label="نام کاربری"
+                    placeholder="نام کاربری خود را وارد کنید"
+                    fullWidth
+                    dir="ltr"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                />
+                <Input
+                    type="password"
+                    label="رمز عبور"
+                    placeholder="رمز عبور خود را وارد کنید"
+                    fullWidth
+                    dir="ltr"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                />
+                <Button
+                    color="primary"
+                    variant="shadow"
+                    fullWidth
+                    size="lg"
+                    onPress={handleLogin}
+                    isLoading={loginLoading}
+                    isDisabled={!!twoFactorId}
+                >
+                    ورود
+                </Button>
+                {twoFactorId && (
+                    <>
+                        <Divider/>
+                        <Input
+                            type="text"
+                            label="کد تأیید دو مرحله‌ای"
+                            placeholder="کد تأیید را وارد کنید"
+                            className="w-full"
+                            value={twoFactorCode}
+                            onChange={(e) => setTwoFactorCode(e.target.value)}
+                        />
+                        <Button
+                            color="secondary"
+                            variant="shadow"
+                            fullWidth
+                            size="lg"
+                            onPress={handleTwoFactorLogin}
+                            isLoading={twoFacLoading}
+                        >
+                            تأیید ورود
+                        </Button>
+                    </>
+                )}
+                {status && (
+                    <p className="mt-4 text-black text-center">
+                        {status}
+                    </p>
+                )}
+            </div>
+        </>
     )
 }
