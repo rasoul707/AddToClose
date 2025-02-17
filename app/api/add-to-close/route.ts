@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     const {username} = data;
 
     ig.state.generateDevice(username);
-    ig.state.proxyUrl = "http://127.0.0.1:10808";
+    // ig.state.proxyUrl = "http://127.0.0.1:10808";
 
     if (fs.existsSync(`session/${username}.json`)) {
         const session = JSON.parse(fs.readFileSync(`session/${username}.json`, 'utf-8'));

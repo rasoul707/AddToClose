@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     console.log({username, password, twoFactorId, twoFactorMethod});
 
     ig.state.generateDevice(username);
-    ig.state.proxyUrl = "http://127.0.0.1:10808";
+    // ig.state.proxyUrl = "http://127.0.0.1:10808";
     try {
         if (twoFactorCode && twoFactorId) {
             await ig.account.twoFactorLogin({
