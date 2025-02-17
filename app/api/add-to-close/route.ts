@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
 
     async function addFollowersToCloseFriends(followers: { id: number, username: string }[]) {
-        return new Promise(async (resolve, reject) => {
+        return new Promise(async (resolve) => {
             const followerIds = followers.map(f => f.id);
             console.log('📥 Adding followers to close friends...');
             // افزودن تمام فالوورها به کلوز فرند
