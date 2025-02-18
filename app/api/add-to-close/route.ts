@@ -47,13 +47,13 @@ export async function POST(req: NextRequest) {
         do {
             const items = await followersFeed.items();
             for(const follower of items) {
-                if (((1000 * i) + batch.length) < startFrom) {
+                if (((200 * i) + batch.length) < startFrom) {
                     console.log(`📥 Skipped ${batch.length} followers to close friends...`);
                     continue;
                     return
                 }
                 batch.push(follower.pk)
-                if(batch.length >= 1000){
+                if(batch.length >= 200){
                     i++
                     await addBatchToCloseFriends(batch);
                     batch = []
