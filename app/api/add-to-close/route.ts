@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     const {username, startFrom = 0} = data;
 
     ig.state.generateDevice(username);
-    // ig.state.proxyUrl = "http://127.0.0.1:10808";
+    ig.state.proxyUrl = process.env.NEXT_APP_PROXY || "";
 
     if (fs.existsSync(`session/${username}.json`)) {
         const session = JSON.parse(fs.readFileSync(`session/${username}.json`, 'utf-8'));
@@ -20,15 +20,14 @@ export async function POST(req: NextRequest) {
     }
 
 
-
     async function addBatchToCloseFriends(batch: number[]) {
         return new Promise(async (resolve) => {
             console.log(`📥 Adding ${batch.length} followers to close friends...`);
             await ig.friendship.setBesties({add: batch});
             console.log(`✅ ${batch.length} users have been added`);
+            console.log("Waiting for break 10 min")
             setTimeout(() => {
                 resolve(true)
-                console.log("Waiting for break 10 min")
             }, 600000)
         })
     }
@@ -46,29 +45,28 @@ export async function POST(req: NextRequest) {
         let i = 0
         do {
             const items = await followersFeed.items();
-            for(const follower of items) {
+
+            batch.push(...items.map((i) => (i.pk)))
+
+            console.log(`📥 Fetch ${(200 * i) + batch.length} followers...`);
+
+            if (batch.length >= 200) {
                 if (((200 * i) + batch.length) < startFrom) {
-                    console.log(`📥 Skipped ${batch.length} followers to close friends...`);
-                    continue;
-                    return
-                }
-                batch.push(follower.pk)
-                if(batch.length >= 200){
-                    i++
+                    console.log(`📥 Skipped ${(200 * i) + batch.length} followers...`);
+                    batch = []
+                } else {
                     await addBatchToCloseFriends(batch);
                     batch = []
                 }
+                i++
             }
-
-            console.log(`🔹 Fetch ${batch.length} followers for now...`);
 
         } while (followersFeed.isMoreAvailable());
 
-        if (batch.length > 0){
+        if (batch.length > 0) {
             await addBatchToCloseFriends(batch);
         }
     }
-
 
 
     processFollowers().catch(console.error);
