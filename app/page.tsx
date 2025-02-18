@@ -94,15 +94,15 @@ const Dashboard = ({session}: {session: object | null}) => {
                     {/*@ts-expect-error*/}
                     {session?.user.fullName}
                 </div>
-                {/*<Input*/}
-                {/*    type="number"*/}
-                {/*    label="شروع از"*/}
-                {/*    placeholder="از چه عددی شروع شود؟"*/}
-                {/*    fullWidth*/}
-                {/*    dir="ltr"*/}
-                {/*    value={startFrom}*/}
-                {/*    onChange={(e) => setStartFrom(e.target.value)}*/}
-                {/*/>*/}
+                <Input
+                    type="number"
+                    label="شروع از"
+                    placeholder="از چه عددی شروع شود؟"
+                    fullWidth
+                    dir="ltr"
+                    value={startFrom}
+                    onChange={(e) => setStartFrom(e.target.value)}*/}
+                />
                 <Button
                     color="success"
                     variant="shadow"
