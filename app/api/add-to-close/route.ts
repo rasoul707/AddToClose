@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
     const ig = new IgApiClient();
 
     const data = await req.json()
-    const {username} = data;
+    const {username, startFrom = 0} = data;
 
     ig.state.generateDevice(username);
     // ig.state.proxyUrl = "http://127.0.0.1:10808";
@@ -21,8 +21,9 @@ export async function POST(req: NextRequest) {
 
 
 
-    async function addBatchToCloseFriends(batch: number[]) {
+    async function addBatchToCloseFriends(batch: number[], i: number) {
         return new Promise(async (resolve) => {
+            if (batch.length * i) 
             console.log(`📥 Adding ${batch.length} followers to close friends...`);
             await ig.friendship.setBesties({add: batch});
             console.log(`✅ ${batch.length} users have been added`);
@@ -43,15 +44,14 @@ export async function POST(req: NextRequest) {
 
         const followersFeed = ig.feed.accountFollowers(userId);
         let batch: number[] = [];
-
+        let i = 0
         do {
             const items = await followersFeed.items();
-
             for(const follower of items) {
                 batch.push(follower.pk)
-
                 if(batch.length === 1000){
-                    await addBatchToCloseFriends(batch);
+                    i++
+                    await addBatchToCloseFriends(batch, i);
                     batch = []
                 }
             }
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
         } while (followersFeed.isMoreAvailable());
 
         if (batch.length > 0){
-            await addBatchToCloseFriends(batch);
+            await addBatchToCloseFriends(batch, i);
         }
     }
 
