@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
 
 
-    async function addBatchToCloseFriends(batch: number[], i: number) {
+    async function addBatchToCloseFriends(batch: number[]) {
         return new Promise(async (resolve) => {
             console.log(`📥 Adding ${batch.length} followers to close friends...`);
             await ig.friendship.setBesties({add: batch});
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
                 batch.push(follower.pk)
                 if(batch.length === 1000){
                     i++
-                    await addBatchToCloseFriends(batch, i);
+                    await addBatchToCloseFriends(batch);
                     batch = []
                 }
             }
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         } while (followersFeed.isMoreAvailable());
 
         if (batch.length > 0){
-            await addBatchToCloseFriends(batch, i);
+            await addBatchToCloseFriends(batch);
         }
     }
 
