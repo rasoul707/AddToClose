@@ -40,6 +40,9 @@ export default function Home() {
 
 const Dashboard = ({session}: {session: object | null}) => {
 
+    const [startFrom, setStartFrom] = useState("0");
+
+
     const handleLogout = () => {
         removeSession()
     }
@@ -58,7 +61,7 @@ const Dashboard = ({session}: {session: object | null}) => {
         try {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-expect-error
-            const data = {username: session?.user?.username, session: session?.sessionId}
+            const data = {username: session?.user?.username, startFrom: startFrom}
             await axios.post("/api/add-to-close", data);
             alert("ربات در حال اجراست! برنامه را ببندید و منتظر بمانید")
         } catch (error) {
@@ -71,7 +74,7 @@ const Dashboard = ({session}: {session: object | null}) => {
         }
         setLoading(false)
     };
-
+    // 
 
     return (
         <>
@@ -91,6 +94,15 @@ const Dashboard = ({session}: {session: object | null}) => {
                     {/*@ts-expect-error*/}
                     {session?.user.fullName}
                 </div>
+                {/*<Input*/}
+                {/*    type="number"*/}
+                {/*    label="شروع از"*/}
+                {/*    placeholder="از چه عددی شروع شود؟"*/}
+                {/*    fullWidth*/}
+                {/*    dir="ltr"*/}
+                {/*    value={startFrom}*/}
+                {/*    onChange={(e) => setStartFrom(e.target.value)}*/}
+                {/*/>*/}
                 <Button
                     color="success"
                     variant="shadow"

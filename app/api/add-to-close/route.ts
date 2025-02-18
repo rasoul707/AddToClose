@@ -20,46 +20,54 @@ export async function POST(req: NextRequest) {
     }
 
 
-    async function getAllFollowers() {
+
+    async function addBatchToCloseFriends(batch: number[]) {
+        return new Promise(async (resolve) => {
+            console.log(`📥 Adding ${batch.length} followers to close friends...`);
+            await ig.friendship.setBesties({add: batch});
+            console.log(`✅ ${batch.length} users have been added`);
+            setTimeout(() => {
+                resolve(true)
+                console.log("Waiting for break 10 min")
+            }, 600000)
+        })
+    }
+
+
+    async function processFollowers() {
         // دریافت اطلاعات کاربر
         const user = await ig.user.searchExact(username);
         const userId = user.pk;
 
         console.log(`📥 Fetching followers of ${username}...`);
 
-        // دریافت لیست کامل فالوورها
         const followersFeed = ig.feed.accountFollowers(userId);
-        const followers = [];
+        let batch: number[] = [];
 
         do {
             const items = await followersFeed.items();
-            const tt = items.map((f) => ({ id: f.pk, username: f.username }))
-            followers.push(...tt);
-            console.log(`🔹 Fetch ${followers.length} followers for now...`);
-            await addFollowersToCloseFriends(tt)
 
-        } while (followersFeed.isMoreAvailable()); // تا زمانی که داده باقی‌مانده ادامه می‌دهد
+            for(const follower of items) {
+                batch.push(follower.pk)
 
-        console.log(`✅ Total followers: ${followers.length}`);
-        return followers;
+                if(batch.length === 1000){
+                    await addBatchToCloseFriends(batch);
+                    batch = []
+                }
+            }
+
+            console.log(`🔹 Fetch ${batch.length} followers for now...`);
+
+        } while (followersFeed.isMoreAvailable());
+
+        if (batch.length > 0){
+            await addBatchToCloseFriends(batch);
+        }
     }
 
 
-    async function addFollowersToCloseFriends(followers: { id: number, username: string }[]) {
-        return new Promise(async (resolve) => {
-            const followerIds = followers.map(f => f.id);
-            console.log('📥 Adding followers to close friends...');
-            // افزودن تمام فالوورها به کلوز فرند
-            await ig.friendship.setBesties({add: followerIds});
-            console.log(`✅ ${followerIds.length} users have been added`);
-            setTimeout(() => {
-                resolve(true)
-            }, 10000)
-        })
 
-    }
-
-    getAllFollowers().catch(console.error);
+    processFollowers().catch(console.error);
 
     return NextResponse.json({success: true, message: "ربات در حال اجراست"});
 
