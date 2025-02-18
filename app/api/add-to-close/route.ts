@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
                     return
                 }
                 batch.push(follower.pk)
-                if(batch.length === 1000){
+                if(batch.length >= 1000){
                     i++
                     await addBatchToCloseFriends(batch);
                     batch = []
