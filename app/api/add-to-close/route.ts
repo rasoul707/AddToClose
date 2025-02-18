@@ -48,11 +48,11 @@ export async function POST(req: NextRequest) {
 
             batch.push(...items.map((i) => (i.pk)))
 
-            console.log(`📥 Fetch ${(200 * i) + batch.length} followers...`);
+            console.log(`📥 Fetch ${(20 * i) + batch.length} followers...`);
 
-            if (batch.length >= 200) {
-                if (((200 * i) + batch.length) < startFrom) {
-                    console.log(`📥 Skipped ${(200 * i) + batch.length} followers...`);
+            if (batch.length >= 20) {
+                if (((20 * i) + batch.length) < startFrom) {
+                    console.log(`📥 Skipped ${(20 * i) + batch.length} followers...`);
                     batch = []
                 } else {
                     await addBatchToCloseFriends(batch);
