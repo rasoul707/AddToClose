@@ -101,7 +101,7 @@ const Dashboard = ({session}: {session: object | null}) => {
                     fullWidth
                     dir="ltr"
                     value={startFrom}
-                    onChange={(e) => setStartFrom(e.target.value)}*/}
+                    onChange={(e) => setStartFrom(e.target.value)}
                 />
                 <Button
                     color="success"
