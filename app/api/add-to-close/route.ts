@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
             console.log("Waiting for break 10 min")
             setTimeout(() => {
                 resolve(true)
-            }, 600000)
+            }, 60000)
         })
     }
 
