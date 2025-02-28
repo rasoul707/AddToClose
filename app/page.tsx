@@ -2,7 +2,7 @@
 
 import {useEffect, useState} from 'react';
 import axios from "axios";
-import {Avatar, Button, Card, Divider, Input} from "@heroui/react";
+import {Avatar, Button, Card, Divider, Input, Spinner} from "@heroui/react";
 
 
 export default function Home() {
@@ -14,20 +14,52 @@ export default function Home() {
         window.location.reload();
     }
 
+    const removeSession = () => {
+        localStorage.removeItem("igdata");
+        window.location.reload();
+    }
+
+
+    const [isLoading, setLoading] = useState(true);
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    const auth = async (session) => {
+        setLoading(true)
+        try {
+            await axios.get(`/api/auth?username=${session?.user?.username}`);
+            setSessionData(session)
+        } catch (error) {
+            console.log({error});
+            removeSession()
+        }
+        setLoading(false)
+    };
+
+
     useEffect(() => {
         const d = window.localStorage.getItem("igdata")
-        setSessionData(d ? JSON.parse(d) : null)
+        if (d) {
+            auth(JSON.parse(d))
+        } else{
+            setLoading(false)
+        }
     }, []);
+
 
     return (
         <div className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
             <Card className="p-8 shadow-xl max-w-md w-full bg-white">
-                {(!sessionData) && (
+                {(isLoading) && (
+                    <div className="flex justify-center items-center w-full">
+                        <Spinner />
+                    </div>
+                )}
+                {(!isLoading && !sessionData) && (
                     <Login
                         setSession={setSession}
                     />
                 )}
-                {(!!sessionData) && (
+                {(!isLoading && !!sessionData) && (
                     <Dashboard
                         session={sessionData}
                     />
@@ -146,7 +178,7 @@ const Login = ({setSession}: { setSession: (data: object) => void; }) => {
     const handleLogin = async () => {
         setLoginLoading(true)
         try {
-            const res = await axios.post("/api/login", {username, password});
+            const res = await axios.post("/api/auth", {username, password});
             if (res.data.twoFactorRequired) {
                 setTwoFactorId(res.data.twoFactorId);
                 setTwoFactorMethod(res.data.twoFactorMethod);

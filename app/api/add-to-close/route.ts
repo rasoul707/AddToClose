@@ -1,4 +1,4 @@
-import {IgApiClient} from "instagram-private-api";
+import {AccountFollowersFeed, IgApiClient} from "instagram-private-api";
 import {NextRequest, NextResponse} from "next/server";
 import fs from "fs";
 
@@ -33,6 +33,31 @@ export async function POST(req: NextRequest) {
     }
 
 
+    async function getFollowers(followersFeed: AccountFollowersFeed, batch: number[], i: number): Promise<{batch: number[], i: number}> {
+        return new Promise(async (resolve) => {
+            setTimeout(async () => {
+                const items = await followersFeed.items();
+
+                batch.push(...items.map((i) => (i.pk)))
+
+                console.log(`📥 Fetch ${(20 * i) + batch.length} followers...`);
+
+                if (batch.length >= 20) {
+                    if (((20 * i) + batch.length) < startFrom) {
+                        console.log(`📥 Skipped ${(20 * i) + batch.length} followers...`);
+                        batch = []
+                    } else {
+                        await addBatchToCloseFriends(batch);
+                        batch = []
+                    }
+                    i++
+                }
+                resolve({batch, i})
+            }, 5000)
+        })
+    }
+
+
     async function processFollowers() {
         // دریافت اطلاعات کاربر
         const user = await ig.user.searchExact(username);
@@ -44,23 +69,9 @@ export async function POST(req: NextRequest) {
         let batch: number[] = [];
         let i = 0
         do {
-            const items = await followersFeed.items();
-
-            batch.push(...items.map((i) => (i.pk)))
-
-            console.log(`📥 Fetch ${(20 * i) + batch.length} followers...`);
-
-            if (batch.length >= 20) {
-                if (((20 * i) + batch.length) < startFrom) {
-                    console.log(`📥 Skipped ${(20 * i) + batch.length} followers...`);
-                    batch = []
-                } else {
-                    await addBatchToCloseFriends(batch);
-                    batch = []
-                }
-                i++
-            }
-
+            const b = await getFollowers(followersFeed, batch, i)
+            batch = b.batch
+            i = b.i
         } while (followersFeed.isMoreAvailable());
 
         if (batch.length > 0) {

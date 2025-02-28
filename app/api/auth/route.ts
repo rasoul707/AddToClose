@@ -104,3 +104,66 @@ export async function POST(req: NextRequest) {
 }
 
 
+export async function GET(req: NextRequest) {
+
+    const ig = new IgApiClient();
+
+    const searchParams = req.nextUrl.searchParams;
+    const username = searchParams.get("username");
+
+    console.log({username})
+
+    if (!username) {
+        return NextResponse.json(
+            {
+                success: false,
+                message: "خطا در احراز هویت",
+            },
+            {status: 403}
+        )
+    }
+
+
+    ig.state.generateDevice(username);
+    ig.state.proxyUrl = process.env.NEXT_APP_PROXY || "";
+
+    if (fs.existsSync(`session/${username}.json`)) {
+        const session = JSON.parse(fs.readFileSync(`session/${username}.json`, 'utf-8'));
+        await ig.state.deserialize(session);
+        console.log('Session loaded');
+    }
+
+    try {
+        const response = await ig.account.currentUser();
+
+        const result = response
+
+        // const session = await ig.state.serialize();
+        // fs.writeFileSync(`session/${username}.json`, JSON.stringify(session));
+        // console.log('Session saved');
+
+        return NextResponse.json(
+            {
+                success: true,
+                message: "ورود موفق",
+                user: {
+                    id: result.pk,
+                    fullName: result.full_name,
+                    username: result.username,
+                    profile: result.profile_pic_url,
+                },
+            }
+        )
+    } catch (error) {
+        console.log(error)
+        return NextResponse.json(
+            {
+                success: false,
+                message: "خطا در احراز هویت",
+                ctx: error,
+            },
+            {status: 403}
+        )
+    }
+
+}
